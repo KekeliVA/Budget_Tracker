@@ -65,4 +65,22 @@ self.addEventListener("fetch", event => {
     );
     return;
   }
-})
+
+  // use cache first for all other requests for performance
+  event.respondWith(
+    caches.match(event.request).then(cachedResponse => {
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+
+      // request is not in cache, make a network request and cache the response
+      return caches.open(FILE_CACHE_DATA).then(CACHE => {
+        return fetch(event.request).then(response => {
+          return cache.put(event.request, response.clone()).then(() => {
+            return response;
+          });
+        });
+      });
+    })
+  );
+});
