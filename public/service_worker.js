@@ -43,4 +43,26 @@ self.addEventListener("activate", function (event) {
   self.clients.claim();
 });
 
-// 
+//  fetch
+self.addEventListener("fetch", event => {
+  // requests that aren't GET are cached and requests to other origins are not cached
+  if (event.request.method !== "GET" || !event.request.url.startsWith(self.location.origin)) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // handle runtime GET requests for the data from /api routes
+  if (event.request.url.includes("/api/")) {
+    event.respondWith(
+      caches.open(FILE_CACHE_DATA).then((cache) => {
+        return fetch(event.request)
+          .then((response) => {
+            cache.put(event.request, response.clone());
+            return response;
+          })
+          .catch(() => caches.match(event.request));
+      })
+    );
+    return;
+  }
+})
